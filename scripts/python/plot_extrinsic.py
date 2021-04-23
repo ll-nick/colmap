@@ -47,7 +47,7 @@ def draw_cos(ax, tf, axislength = 0.2, text = ''):
     x_loc = [axislength, 0, 0, 1]
     y_loc = [0, axislength, 0, 1]
     z_loc = [0, 0, axislength, 1]
-    text_pos_loc = [0, 0, -0.1, 1]
+    text_pos_loc = [0, 0, -axislength/2, 1]
 
     # Transform using given tf
     origin_glob = np.matmul(tf, origin_loc)
@@ -80,7 +80,7 @@ def fix_axes(ax, coord_range):
     for xb, yb, zb in zip(Xb, Yb, Zb):
         ax.plot([xb], [yb], [zb], 'w')
 
-def plot_extrinsic(extrinsic, axis_length):
+def plot_extrinsic(extrinsic, axis_length, plot_id = False):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     coord_range = np.block([[np.ones((3,1)) * sys.float_info.max, np.ones((3,1)) * sys.float_info.min]])
@@ -88,7 +88,10 @@ def plot_extrinsic(extrinsic, axis_length):
         t = e.tvec        
         R = quaternions.quat2mat(e.qvec)
         tf = inverse_transformation(affines.compose(t, R, np.ones(3)))
-        draw_cos(ax, tf, axislength = axis_length, text = '')
+        if plot_id:
+            draw_cos(ax, tf, axislength = axis_length, text = str(e.id))
+        else:
+            draw_cos(ax, tf, axislength = axis_length, text = '')
 
         for idx, coord in enumerate(t):
             if coord < coord_range[idx, 0]:
@@ -104,7 +107,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Read and write COLMAP binary and text models")
     parser.add_argument("extrinsic_calib", type=str, help="path to textfile containing extrinsic calibration.")
     parser.add_argument("--axis-length", type=float, required=False, default=0.2, help="Length of axis unit vectors in visualization.")
+    parser.add_argument("--plot-id", action="store_true", help="With this flag, the image id will be plotted next to the corresponding coordinate system.")
     args = parser.parse_args()
 
     extrinsic = read_extrinsic(path=args.extrinsic_calib)
-    plot_extrinsic(extrinsic, args.axis_length)
+    plot_extrinsic(extrinsic, args.axis_length, args.plot_id)
