@@ -5,6 +5,7 @@
 import os
 import sys
 import collections
+from pathlib import Path
 import numpy as np
 import struct
 import argparse
@@ -41,6 +42,9 @@ CAMERA_MODEL_IDS = dict([(camera_model.model_id, camera_model)
 CAMERA_MODEL_NAMES = dict([(camera_model.model_name, camera_model)
                            for camera_model in CAMERA_MODELS])
 
+def ensure_dir(d):
+    if not os.path.isdir(d):
+        Path(d).mkdir(parents=True)                    
 
 def read_next_bytes(fid, num_bytes, format_char_sequence, endian_character="<"):
     """Read and unpack the next bytes from a binary file.
@@ -181,6 +185,7 @@ def read_model(path):
 
 
 def write_model(cameras, images, path):
+    ensure_dir(path)
 
     write_intrinsic(cameras, os.path.join(path, "intrinsic.txt"))
     write_extrinsic(images, os.path.join(path, "extrinsic.txt"))
@@ -218,7 +223,7 @@ def rotmat2qvec(R):
 def main():
     parser = argparse.ArgumentParser(description="Extract estimated intrinsic and extrinsic calibration from binary colmap model.")
     parser.add_argument("--input_model", help="path to input model folder")
-    parser.add_argument("--output_model", help="path to output model folder")
+    parser.add_argument("--output_directory", help="path to output folder")
     args = parser.parse_args()
 
     cameras, images = read_model(path=args.input_model)
@@ -226,8 +231,8 @@ def main():
     print("Number of estimated intrinsics:", len(cameras))
     print("Number of estimated extrinsics:", len(images))
 
-    if args.output_model is not None:
-        write_model(cameras, images, path=args.output_model)
+    if args.output_directory is not None:
+        write_model(cameras, images, path=args.output_directory)
 
 
 if __name__ == "__main__":

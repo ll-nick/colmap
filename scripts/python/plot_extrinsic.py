@@ -1,4 +1,3 @@
-#!/usr/bin/env python2
 # Quick script to visually validate extrinsics extracted using extract_calib.py
 # Author: Nick Le Large
 
@@ -12,6 +11,15 @@ from transforms3d import affines, quaternions
 
 Transformation = collections.namedtuple(
     "Transformation", ["id", "qvec", "tvec", "camera_id", "name"])
+
+def inverse_transformation(tf):
+    R = tf[:3, :3]
+    R_inv = np.transpose(R)
+    t = tf[:3, 3]
+    t_inv = -np.matmul(R_inv,t)
+    tf_inv = affines.compose(t_inv, R_inv, np.ones(3))
+
+    return tf_inv
 
 def read_extrinsic(path):
     transformations = {}
@@ -72,15 +80,15 @@ def fix_axes(ax, coord_range):
     for xb, yb, zb in zip(Xb, Yb, Zb):
         ax.plot([xb], [yb], [zb], 'w')
 
-def plot_extrinsic(extrinsic):
+def plot_extrinsic(extrinsic, axis_length):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     coord_range = np.block([[np.ones((3,1)) * sys.float_info.max, np.ones((3,1)) * sys.float_info.min]])
     for _, e in extrinsic.items():
         t = e.tvec        
         R = quaternions.quat2mat(e.qvec)
-        tf = affines.compose(t, R, np.ones(3))
-        draw_cos(ax, tf, axislength = 0.2, text = '')
+        tf = inverse_transformation(affines.compose(t, R, np.ones(3)))
+        draw_cos(ax, tf, axislength = axis_length, text = '')
 
         for idx, coord in enumerate(t):
             if coord < coord_range[idx, 0]:
@@ -94,8 +102,9 @@ def plot_extrinsic(extrinsic):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Read and write COLMAP binary and text models")
-    parser.add_argument("extrinsic_calib", help="path to textfile containing extrinsic calibration.")
+    parser.add_argument("extrinsic_calib", type=str, help="path to textfile containing extrinsic calibration.")
+    parser.add_argument("--axis-length", type=float, required=False, default=0.2, help="Length of axis unit vectors in visualization.")
     args = parser.parse_args()
 
     extrinsic = read_extrinsic(path=args.extrinsic_calib)
-    plot_extrinsic(extrinsic)
+    plot_extrinsic(extrinsic, args.axis_length)
